@@ -8,13 +8,13 @@ ENV TZ=Asia/Shanghai
 
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
 	echo $TZ /etc/timezone && \
-	apt-get update -y -qq && \
-	apt-get upgrade -y -qq && \
-	apt-get install -y -qq software-properties-common && \
+	apt-get update -y && \
+	apt-get upgrade -y && \
+	apt-get install -y software-properties-common && \
         add-apt-repository -y ppa:ondrej/php-7.0 && \
         add-apt-repository ppa:nginx/development && \
-        apt-get update -y -qq && \
-        apt-get install -y -qq php7.0-cli \
+        apt-get update -y && \
+        apt-get install -y php7.0-cli \
                 php7.0-common \
                 php7.0-fpm \
                 php7.0-dev \
@@ -28,6 +28,14 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
                 nginx \
                 git \
                 wget
+
+RUN wget http://dev.mysql.com/get/mysql-apt-config_0.5.3-1_all.deb && \
+    dpkg -i mysql-apt-config_0.5.3-1_all.deb
+
+COPY mysql/mysql.list /etc/apt/sources.list.d/mysql.list
+
+RUN apt-get update && \
+    apt-get install -y mysql-server
 
 RUN mkdir -p /run/php && \
 	sed -i "s/;date.timezone =.*/date.timezone = Asia\/Shanghai/" /etc/php/7.0/fpm/php.ini && \
@@ -44,11 +52,12 @@ RUN cd /tmp && \
 	phpize7.0 && \
 	./configure --enable-xdebug && \
 	make && \
-	make install && \
-	ln -snf /etc/php/mods-available/xdebug.ini /etc/php/7.0/cli/conf.d/20-xdebug.ini && \
-	ln -snf /etc/php/mods-available/xdebug.ini /etc/php/7.0/fpm/conf.d/20-xdebug.ini
+	make install
 
 COPY xdebug/xdebug.ini  /etc/php/mods-available/xdebug.ini
+
+RUN	ln -snf /etc/php/mods-available/xdebug.ini /etc/php/7.0/cli/conf.d/20-xdebug.ini && \
+	ln -snf /etc/php/mods-available/xdebug.ini /etc/php/7.0/fpm/conf.d/20-xdebug.ini
 
 RUN mkdir -p /var/www/php7.app && \
 	chown -R www-data:www-data /var/www/php7.app
@@ -61,6 +70,7 @@ RUN ln -snf /etc/nginx/sites-available/php7.app /etc/nginx/sites-enabled/php7.ap
 COPY nginx/startup.sh /usr/local/bin
 
 EXPOSE 80
+EXPOSE 3306
 EXPOSE 9000
 CMD ["startup.sh"]
 
